@@ -36,7 +36,13 @@ const BackgroundMusic = ({ muted }: BackgroundMusicProps) => {
     };
   }, [muted]);
 
-  return <audio ref={audioRef} src="/music.mp3" loop />;
+  return (
+    <audio
+      ref={audioRef}
+      src={`${import.meta.env.BASE_URL}music.mp3`}
+      loop
+    />
+  );
 };
 
 export default BackgroundMusic;

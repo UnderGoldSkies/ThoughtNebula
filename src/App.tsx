@@ -363,6 +363,7 @@ const Scene: FC<SceneProps> = ({
   onSphereClick,
   searchQuery,
 }) => {
+  const assetBase = import.meta.env.BASE_URL || "/";
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const brainGroupRef = useRef<THREE.Group>(null);
   const cameraTargetPos = useRef(new THREE.Vector3());
@@ -372,7 +373,7 @@ const Scene: FC<SceneProps> = ({
   const [lightningSegments, setLightningSegments] = useState<LightningSegment[]>([]);
   const { camera, invalidate } = useThree();
 
-  const gltf = useGLTF("/brain_hologram.glb");
+  const gltf = useGLTF(`${assetBase}brain_hologram.glb`);
   const brainObject = useMemo(() => gltf?.scene?.clone() ?? null, [gltf]);
 
   useEffect(() => {
