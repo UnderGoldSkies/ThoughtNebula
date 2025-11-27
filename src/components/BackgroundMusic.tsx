@@ -1,28 +1,40 @@
 import { useEffect, useRef } from "react";
 
-const BackgroundMusic = () => {
+interface BackgroundMusicProps {
+  muted: boolean;
+}
+
+const BackgroundMusic = ({ muted }: BackgroundMusicProps) => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     const audio = audioRef.current;
-    const audiovolume = 0.3;
-    if (audio) {
-      audio.volume = audiovolume;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          const playOnClick = () => {
-            audio.volume = audiovolume;
-            audio
-              .play()
-              .catch((e) => console.error("Could not play audio on click.", e));
-            document.removeEventListener("click", playOnClick);
-          };
-          document.addEventListener("click", playOnClick);
-        });
-      }
+    const isMobile =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(max-width: 768px)").matches ||
+        /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
+    const audioVolume = isMobile ? 0.14 : 0.24;
+    if (!audio) return;
+
+    const playAudio = () => {
+      audio.volume = audioVolume;
+      audio.muted = muted;
+      audio.play().catch((e) => console.error("Could not play audio on click.", e));
+    };
+
+    audio.volume = audioVolume;
+    audio.muted = muted;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        document.addEventListener("click", playAudio, { once: true });
+      });
     }
-  }, []);
+
+    return () => {
+      document.removeEventListener("click", playAudio);
+    };
+  }, [muted]);
 
   return <audio ref={audioRef} src="/music.mp3" loop />;
 };
