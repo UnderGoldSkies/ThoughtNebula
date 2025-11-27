@@ -219,6 +219,7 @@ interface InteractiveSphereProps {
   color: string;
   similarity: number | null;
   onClick: (point: NeuronPoint) => void;
+  isPreEmbedding: boolean;
 }
 
 const InteractiveSphere: FC<InteractiveSphereProps> = ({
@@ -226,6 +227,7 @@ const InteractiveSphere: FC<InteractiveSphereProps> = ({
   color,
   similarity,
   onClick,
+  isPreEmbedding,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null!);
@@ -270,12 +272,13 @@ const InteractiveSphere: FC<InteractiveSphereProps> = ({
       labelRef.current.style.transform = `translateX(-50%) scale(${materialRef.current.opacity})`;
     }
 
-    const baseIntensity = similarity !== null ? 1.2 : 0.35;
+    const baseIntensity = similarity !== null ? 1.2 : isPreEmbedding ? 0.55 : 0.35;
     const pulse =
       similarity !== null
-        ? 0.4 *
-          Math.sin(clockRef.current * 0.12 + px * 0.2 + py * 0.15)
-        : 0;
+        ? 0.4 * Math.sin(clockRef.current * 0.06 + px * 0.2 + py * 0.15)
+        : isPreEmbedding
+          ? 0.35 * Math.sin(clockRef.current * 0.09 + px * 0.27 + py * 0.21)
+          : 0;
     materialRef.current.emissiveIntensity = baseIntensity + pulse;
 
     invalidate();
@@ -347,6 +350,13 @@ interface SceneProps {
   searchQuery: string;
 }
 
+interface LightningSegment {
+  id: number;
+  start: [number, number, number];
+  end: [number, number, number];
+  life: number;
+}
+
 const Scene: FC<SceneProps> = ({
   galaxyPoints,
   searchResults,
@@ -354,9 +364,12 @@ const Scene: FC<SceneProps> = ({
   searchQuery,
 }) => {
   const controlsRef = useRef<OrbitControlsImpl>(null);
+  const brainGroupRef = useRef<THREE.Group>(null);
   const cameraTargetPos = useRef(new THREE.Vector3());
   const controlsTargetLookAt = useRef(new THREE.Vector3());
   const shouldAnimate = useRef(false);
+  const lightningId = useRef(0);
+  const [lightningSegments, setLightningSegments] = useState<LightningSegment[]>([]);
   const { camera, invalidate } = useThree();
 
   const gltf = useGLTF("/brain_hologram.glb");
@@ -656,6 +669,11 @@ const Scene: FC<SceneProps> = ({
   }, [searchQuery, frameBrain]);
 
   useFrame(() => {
+    if (galaxyPoints.length === 0 && brainGroupRef.current) {
+      brainGroupRef.current.rotation.y += 0.003;
+      invalidate();
+    }
+
     if (shouldAnimate.current && controlsRef.current) {
       controlsRef.current.enabled = false;
       const distToTarget = camera.position.distanceTo(cameraTargetPos.current);
@@ -673,6 +691,41 @@ const Scene: FC<SceneProps> = ({
   });
 
   const renderPoints = galaxyPoints.length > 0 ? fitPoints : placeholderPoints;
+  const isPreEmbedding = galaxyPoints.length === 0;
+
+  useEffect(() => {
+    if (!isPreEmbedding) {
+      setLightningSegments([]);
+      return;
+    }
+
+    if (placeholderPoints.length === 0) return;
+
+    const interval = window.setInterval(() => {
+      setLightningSegments((prev) => {
+        const alive = prev
+          .map((seg) => ({ ...seg, life: seg.life - 0.24 }))
+          .filter((seg) => seg.life > 0);
+        const maxSegments = 6;
+        while (alive.length < maxSegments) {
+          const a = Math.floor(Math.random() * placeholderPoints.length);
+          let b = Math.floor(Math.random() * placeholderPoints.length);
+          if (a === b) {
+            b = (b + 1) % placeholderPoints.length;
+          }
+          alive.push({
+            id: lightningId.current++,
+            start: placeholderPoints[a].position,
+            end: placeholderPoints[b].position,
+            life: 1.0,
+          });
+        }
+        return alive;
+      });
+    }, 240);
+
+    return () => window.clearInterval(interval);
+  }, [isPreEmbedding, placeholderPoints]);
 
   const { pointColors, similarityMap } = useMemo(() => {
     const idle = new THREE.Color("#34215f");
@@ -717,7 +770,7 @@ const Scene: FC<SceneProps> = ({
 
   return (
     <>
-      <fog attach="fog" args={["#e8ecf2", 30, 160]} />
+      <fog attach="fog" args={["#e8ecf2", 60, 220]} />
       <ambientLight intensity={0.6} />
       <hemisphereLight intensity={0.35} args={["#ffffff", "#888888", 1]} />
       <pointLight position={[0, 40, 20]} intensity={1.4} />
@@ -725,6 +778,7 @@ const Scene: FC<SceneProps> = ({
       <OrbitControls ref={controlsRef} makeDefault enableZoom enablePan />
       {brainObject && (
         <group
+          ref={brainGroupRef}
           scale={[
             brainPlacement.scale,
             brainPlacement.scale,
@@ -773,8 +827,32 @@ const Scene: FC<SceneProps> = ({
           color={pointColors[i]}
           similarity={similarityMap.get(point.text) ?? null}
           onClick={onSphereClick}
+          isPreEmbedding={isPreEmbedding}
         />
       ))}
+      {isPreEmbedding && lightningSegments.length > 0 && (
+        <group>
+          {lightningSegments.map((seg) => (
+            <line key={seg.id}>
+              <bufferGeometry
+                attach="geometry"
+                onUpdate={(geo) =>
+                  geo.setFromPoints([
+                    new THREE.Vector3(...seg.start),
+                    new THREE.Vector3(...seg.end),
+                  ])
+                }
+              />
+              <lineBasicMaterial
+                color="#7cf8ff"
+                transparent
+                opacity={Math.max(0, Math.min(1, seg.life))}
+                linewidth={1}
+              />
+            </line>
+          ))}
+        </group>
+      )}
     </>
   );
 };
@@ -801,6 +879,7 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [isTextareaExpanded, setIsTextareaExpanded] = useState<boolean>(false);
+  const [isMusicMuted, setIsMusicMuted] = useState<boolean>(false);
   const lastQueryEmbedding = useRef<number[] | null>(null);
   const [generationStatus, setGenerationStatus] = useState("");
 
@@ -1003,7 +1082,7 @@ export default function App() {
   if (!isReady) {
     return (
       <div className="h-screen w-screen bg-[#f2f2f2] text-gray-900 relative">
-        <BackgroundMusic />
+        <BackgroundMusic muted={isMusicMuted} />
           <div className="absolute top-0 left-0 w-full h-full z-0">
             {renderBrainCanvas()}
           </div>
@@ -1020,7 +1099,7 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen bg-[#f2f2f2] text-gray-900 relative">
-      <BackgroundMusic />
+      <BackgroundMusic muted={isMusicMuted} />
       <div className="absolute top-0 left-0 w-full h-full z-0">
         {renderBrainCanvas()}
       </div>
@@ -1067,12 +1146,21 @@ export default function App() {
                 >
                   Your Dataset
                 </label>
-                <button
-                  onClick={setDefaultSentences}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
-                >
-                  Try Example
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={setDefaultSentences}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                  >
+                    Try Example
+                  </button>
+                  <button
+                    onClick={() => setIsMusicMuted((prev) => !prev)}
+                    aria-pressed={isMusicMuted}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                  >
+                    {isMusicMuted ? "Unmute Music" : "Mute Music"}
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-gray-600 mb-2">
                 Enter full sentences, one per line. Short, natural sentences embed best.
