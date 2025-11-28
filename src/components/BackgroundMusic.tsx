@@ -5,6 +5,8 @@ interface BackgroundMusicProps {
 }
 
 const BackgroundMusic = ({ muted }: BackgroundMusicProps) => {
+  const musicUrl =
+    import.meta.env.VITE_MUSIC_URL || `${import.meta.env.BASE_URL}music.mp3`;
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ const BackgroundMusic = ({ muted }: BackgroundMusicProps) => {
   return (
     <audio
       ref={audioRef}
-      src={`${import.meta.env.BASE_URL}music.mp3`}
+      src={musicUrl}
       loop
     />
   );

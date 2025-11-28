@@ -1,3 +1,4 @@
 node_modules
 public/brain_hologram.glb
 public/music.mp3
+.env*

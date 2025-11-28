@@ -25,6 +25,13 @@ Open the dev server URL (typically http://localhost:5173). Everything runs local
 - Place your own background music at `public/music.mp3`.
 These files are `.gitignore`d so you can use licensed assets without committing them. Ensure you have rights to the files you supply and credit their authors per their licenses.
 
+### Deploying without committing assets
+Host your assets somewhere accessible (e.g., object storage) and set env vars so the site can load them:
+- `VITE_BRAIN_URL` → full URL to `brain_hologram.glb`
+- `VITE_MUSIC_URL` → full URL to `music.mp3`
+
+For GitHub Pages, add repo secrets `VITE_BRAIN_URL` and `VITE_MUSIC_URL`; the included workflow passes them into the build so the static site points to your hosted files. Locally, you can set these in a `.env.local` (ignored).
+
 ## Using the app
 - Load the model (cached after first download).
 - Enter full sentences, one per line. Short, natural sentences embed best.

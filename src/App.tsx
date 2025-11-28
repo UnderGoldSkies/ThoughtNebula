@@ -368,6 +368,8 @@ const Scene: FC<SceneProps> = ({
   qualityLevel,
 }) => {
   const assetBase = import.meta.env.BASE_URL || "/";
+  const brainUrl =
+    import.meta.env.VITE_BRAIN_URL || `${assetBase}brain_hologram.glb`;
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const brainGroupRef = useRef<THREE.Group>(null);
   const cameraTargetPos = useRef(new THREE.Vector3());
@@ -377,12 +379,19 @@ const Scene: FC<SceneProps> = ({
   const [lightningSegments, setLightningSegments] = useState<LightningSegment[]>([]);
   const { camera, invalidate } = useThree();
 
-  const gltf = useGLTF(`${assetBase}brain_hologram.glb`);
+  let gltf: any = null;
+  let gltfError: Error | null = null;
+  try {
+    gltf = useGLTF(brainUrl);
+  } catch (e) {
+    gltfError = e as Error;
+    gltf = null;
+  }
   const brainObject = useMemo(() => gltf?.scene?.clone() ?? null, [gltf]);
 
   useEffect(() => {
     if (!brainObject) return;
-    brainObject.traverse((child) => {
+    brainObject.traverse((child: THREE.Object3D) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.material = new THREE.MeshStandardMaterial({
@@ -420,7 +429,7 @@ const Scene: FC<SceneProps> = ({
   const brainWireframe = useMemo(() => {
     if (!brainObject) return null;
     let geometry: THREE.BufferGeometry | null = null;
-    brainObject.traverse((child) => {
+    brainObject.traverse((child: THREE.Object3D) => {
       if (!geometry && (child as THREE.Mesh).isMesh) {
         geometry = ((child as THREE.Mesh).geometry as THREE.BufferGeometry)
           .clone();
@@ -698,6 +707,7 @@ const Scene: FC<SceneProps> = ({
 
   const renderPoints = galaxyPoints.length > 0 ? fitPoints : placeholderPoints;
   const isPreEmbedding = galaxyPoints.length === 0;
+  const isLowQuality = qualityLevel === "low";
 
   useEffect(() => {
     if (!isPreEmbedding) {
@@ -782,7 +792,7 @@ const Scene: FC<SceneProps> = ({
       <pointLight position={[0, 40, 20]} intensity={1.4} />
       <pointLight position={[0, -30, -10]} intensity={0.6} color="#7cf0ff" />
       <OrbitControls ref={controlsRef} makeDefault enableZoom enablePan />
-      {brainObject && (
+      {brainObject && !gltfError && !isLowQuality && (
         <group
           ref={brainGroupRef}
           scale={[
@@ -821,9 +831,19 @@ const Scene: FC<SceneProps> = ({
           innerCenter.y,
           innerCenter.z,
         ]}
-        visible={false}
+        visible={isLowQuality}
       >
-        <meshBasicMaterial color="#000000" opacity={0} transparent />
+        {isLowQuality ? (
+          <meshStandardMaterial
+            color="#6b5bd1"
+            emissive="#4a3aa3"
+            emissiveIntensity={0.25}
+            transparent
+            opacity={0.25}
+          />
+        ) : (
+          <meshBasicMaterial color="#000000" opacity={0} transparent />
+        )}
       </mesh>
 
       {renderPoints.map((point, i) => (
