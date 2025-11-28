@@ -792,7 +792,7 @@ const Scene: FC<SceneProps> = ({
       <pointLight position={[0, 40, 20]} intensity={1.4} />
       <pointLight position={[0, -30, -10]} intensity={0.6} color="#7cf0ff" />
       <OrbitControls ref={controlsRef} makeDefault enableZoom enablePan />
-      {brainObject && !gltfError && !isLowQuality && (
+      {brainObject && !gltfError && (
         <group
           ref={brainGroupRef}
           scale={[
@@ -819,33 +819,6 @@ const Scene: FC<SceneProps> = ({
           )}
         </group>
       )}
-      <mesh
-        geometry={innerEllipsoidGeometry}
-        scale={[
-          innerAxes.x,
-          innerAxes.y,
-          innerAxes.z,
-        ]}
-        position={[
-          innerCenter.x,
-          innerCenter.y,
-          innerCenter.z,
-        ]}
-        visible={isLowQuality}
-      >
-        {isLowQuality ? (
-          <meshStandardMaterial
-            color="#6b5bd1"
-            emissive="#4a3aa3"
-            emissiveIntensity={0.25}
-            transparent
-            opacity={0.25}
-          />
-        ) : (
-          <meshBasicMaterial color="#000000" opacity={0} transparent />
-        )}
-      </mesh>
-
       {renderPoints.map((point, i) => (
         <InteractiveSphere
           key={point.text + i}
