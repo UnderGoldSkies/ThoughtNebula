@@ -13,7 +13,7 @@ const BackgroundMusic = ({ muted }: BackgroundMusicProps) => {
       typeof window !== "undefined" &&
       (window.matchMedia("(max-width: 768px)").matches ||
         /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
-    const audioVolume = isMobile ? 0.14 : 0.24;
+    const audioVolume = isMobile ? 0.05 : 0.14;
     if (!audio) return;
 
     const playAudio = () => {

@@ -44,14 +44,14 @@ interface QualityPreset {
 const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {
   low: {
     label: "Battery saver",
-    dpr: [1, 1.15],
+    dpr: [0.65, 0.85],
     antialias: false,
     enableBloom: false,
     bloomIntensity: 0.8,
     bloomHeight: 240,
     powerPreference: "default",
-    menu: { pointCount: 8000, starCount: 1500, starFactor: 4 },
-    scene: { starCount: 1200, starFactor: 3 },
+    menu: { pointCount: 4000, starCount: 800, starFactor: 2 },
+    scene: { starCount: 600, starFactor: 2 },
   },
   medium: {
     label: "Balanced",
@@ -220,6 +220,7 @@ interface InteractiveSphereProps {
   similarity: number | null;
   onClick: (point: NeuronPoint) => void;
   isPreEmbedding: boolean;
+  isLowQuality: boolean;
 }
 
 const InteractiveSphere: FC<InteractiveSphereProps> = ({
@@ -228,6 +229,7 @@ const InteractiveSphere: FC<InteractiveSphereProps> = ({
   similarity,
   onClick,
   isPreEmbedding,
+  isLowQuality,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null!);
@@ -314,7 +316,7 @@ const InteractiveSphere: FC<InteractiveSphereProps> = ({
           }, 2000);
         }}
       >
-        <sphereGeometry args={[0.25, 16, 16]} />
+        <sphereGeometry args={[0.25, isLowQuality ? 12 : 16, isLowQuality ? 12 : 16]} />
         <meshStandardMaterial
           ref={materialRef}
           color={color}
@@ -348,6 +350,7 @@ interface SceneProps {
   searchResults: SearchResult[];
   onSphereClick: (point: NeuronPoint) => void;
   searchQuery: string;
+  qualityLevel: QualityLevel;
 }
 
 interface LightningSegment {
@@ -362,6 +365,7 @@ const Scene: FC<SceneProps> = ({
   searchResults,
   onSphereClick,
   searchQuery,
+  qualityLevel,
 }) => {
   const assetBase = import.meta.env.BASE_URL || "/";
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -485,7 +489,8 @@ const Scene: FC<SceneProps> = ({
 
   const placeholderPoints = useMemo(() => {
     if (!brainObject) return [];
-    const count = 200;
+    const isLowQuality = qualityLevel === "low";
+    const count = isLowQuality ? 90 : 200;
     const pts: NeuronPoint[] = [];
     for (let i = 0; i < count; i++) {
       let v = new THREE.Vector3();
@@ -505,7 +510,7 @@ const Scene: FC<SceneProps> = ({
       });
     }
     return pts;
-  }, [brainObject, innerAxesMargin, innerCenter]);
+  }, [brainObject, innerAxesMargin, innerCenter, qualityLevel]);
 
   const fitPoints = useMemo(() => {
     if (!brainObject) return galaxyPoints;
@@ -707,7 +712,7 @@ const Scene: FC<SceneProps> = ({
         const alive = prev
           .map((seg) => ({ ...seg, life: seg.life - 0.24 }))
           .filter((seg) => seg.life > 0);
-        const maxSegments = 6;
+        const maxSegments = qualityLevel === "low" ? 3 : 6;
         while (alive.length < maxSegments) {
           const a = Math.floor(Math.random() * placeholderPoints.length);
           let b = Math.floor(Math.random() * placeholderPoints.length);
@@ -726,7 +731,7 @@ const Scene: FC<SceneProps> = ({
     }, 240);
 
     return () => window.clearInterval(interval);
-  }, [isPreEmbedding, placeholderPoints]);
+  }, [isPreEmbedding, placeholderPoints, qualityLevel]);
 
   const { pointColors, similarityMap } = useMemo(() => {
     const idle = new THREE.Color("#34215f");
@@ -829,6 +834,7 @@ const Scene: FC<SceneProps> = ({
           similarity={similarityMap.get(point.text) ?? null}
           onClick={onSphereClick}
           isPreEmbedding={isPreEmbedding}
+          isLowQuality={qualityLevel === "low"}
         />
       ))}
       {isPreEmbedding && lightningSegments.length > 0 && (
@@ -1065,6 +1071,7 @@ export default function App() {
           searchResults={searchResults}
           onSphereClick={handlePointFocus}
           searchQuery={searchQuery}
+          qualityLevel={quality}
         />
         {qualitySettings.enableBloom && (
           <EffectComposer enableNormalPass={false}>
