@@ -20,6 +20,11 @@ npm run dev   # or npm run build && npm run preview
 ```
 Open the dev server URL (typically http://localhost:5173). Everything runs locally—no backend required.
 
+## Assets (brain model and music)
+- Place your own brain GLB at `public/brain_hologram.glb`.
+- Place your own background music at `public/music.mp3`.
+These files are `.gitignore`d so you can use licensed assets without committing them. Ensure you have rights to the files you supply and credit their authors per their licenses.
+
 ## Using the app
 - Load the model (cached after first download).
 - Enter full sentences, one per line. Short, natural sentences embed best.
