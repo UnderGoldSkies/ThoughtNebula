@@ -1,4 +1,10 @@
 node_modules
+dist
 public/brain_hologram.glb
 public/music.mp3
+.env*
+
+# Ignore everything in public except the logo
+public/*
+!public/logo.png
 .env*

@@ -461,11 +461,6 @@ const Scene: FC<SceneProps> = ({
     [brainPlacement.offset, innerOffset],
   );
 
-  const innerEllipsoidGeometry = useMemo(
-    () => new THREE.SphereGeometry(1, 48, 48),
-    [],
-  );
-
   const defaultView = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null);
 
   const computeDefaultView = useCallback(() => {
@@ -707,7 +702,6 @@ const Scene: FC<SceneProps> = ({
 
   const renderPoints = galaxyPoints.length > 0 ? fitPoints : placeholderPoints;
   const isPreEmbedding = galaxyPoints.length === 0;
-  const isLowQuality = qualityLevel === "low";
 
   useEffect(() => {
     if (!isPreEmbedding) {
