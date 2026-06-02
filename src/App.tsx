@@ -873,7 +873,7 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [isTextareaExpanded, setIsTextareaExpanded] = useState<boolean>(false);
-  const [isMusicMuted, setIsMusicMuted] = useState<boolean>(false);
+  const [isMusicMuted, setIsMusicMuted] = useState<boolean>(true);
   const lastQueryEmbedding = useRef<number[] | null>(null);
   const [generationStatus, setGenerationStatus] = useState("");
 
